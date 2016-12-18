@@ -1,0 +1,13 @@
+function lowerbd = Exp_Med_lower_bound(parest,n,alpha)
+% This program returns the lower bound of the parameter of exponential
+% distribution
+%      parest == estimated parameter from exponential distribution
+%      
+
+nume = 2*n*parest;
+
+ci  =  gaminv(1-alpha/2,d,2);
+
+
+
+

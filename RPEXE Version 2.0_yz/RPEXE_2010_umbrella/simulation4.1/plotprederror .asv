@@ -1,0 +1,57 @@
+
+struct = res_gam_melanomas;
+lencol = 9;
+lenrow = 7;
+ts     = [30 60 90 120 150 180 210];
+
+% for colomn i in the structure
+for i = 1:lencol,
+    setting(i).error1 = zeros(16,7);
+    setting(i).error2 = zeros(16,7);
+    setting(i).errorI = zeros(16,7);
+    setting(i).scale  = struct(i,1).scale;
+    setting(i).shape  = struct(i,1).shape;
+
+    for j = 1:lenrow,
+        setting(i).error1(:,j) = struct(i,j).r1error; % R1 error
+        setting(i).error2(:,j) = struct(i,j).r2error; % R2 error
+        setting(i).errorI(:,j) = struct(i,j).maxerror; % RInfinite error
+    end    
+end
+
+for i = 1:lencol,
+
+figure(i);
+subplot(1,3,1);
+plot(ts,setting(i).error1(1,:),'b--',ts,setting(i).error1(3,:),'b-.',...
+    ts,setting(i).error1(4,:),'g--',ts,setting(i).error1(6,:),'gp-',...
+    ts,setting(i).error1(7,:),'k--',ts,setting(i).error1(8,:),'k-.',...
+    ts,setting(i).error1(9,:),'k',ts,setting(i).error1(10,:),'r',...
+    ts,setting(i).error1(11,:),'r-.',ts,setting(i).error1(13,:),'r--',...
+    ts,setting(i).error1(14,:),'ro-',ts,setting(i).error1(16,:),'r^-');
+xlim([0 220]);
+title('R 1 penalty');
+subplot(1,3,2);
+plot(ts,setting(i).error2(1,:),'b--',ts,setting(i).error2(3,:),'b-.',...
+    ts,setting(i).error2(4,:),'g--',ts,setting(i).error2(6,:),'gp-',...
+    ts,setting(i).error2(7,:),'k--',ts,setting(i).error2(8,:),'k-.',...
+    ts,setting(i).error2(9,:),'k',ts,setting(i).error2(10,:),'r',...
+    ts,setting(i).error2(11,:),'r-.',ts,setting(i).error2(13,:),'r--',...
+    ts,setting(i).error2(14,:),'ro-',ts,setting(i).error2(16,:),'r^-');
+xlim([0 220]);
+title('R 2 penalty');
+subplot(1,3,3);
+plot(ts,setting(i).errorI(1,:),'b--',ts,setting(i).errorI(3,:),'b-.',...
+    ts,setting(i).errorI(4,:),'g--',ts,setting(i).errorI(6,:),'gp-',...
+    ts,setting(i).errorI(7,:),'k--',ts,setting(i).errorI(8,:),'k-.',...
+    ts,setting(i).errorI(9,:),'k',ts,setting(i).errorI(10,:),'r',...
+    ts,setting(i).errorI(11,:),'r-.',ts,setting(i).errorI(13,:),'r--',...
+    ts,setting(i).errorI(14,:),'ro-',ts,setting(i).errorI(16,:),'r^-');
+xlim([0 220]);
+title('R Infty penalty');
+legend('kme raw','kme 30','exponential','expinential 150 cut','gamma','weibull','lognormal',...
+    'pexe','umrpexe alpha= .2','umrpexe alpha=.05','monorpexe alpha=.2',...
+    'monorpexe alpha=.05');
+end
+
+

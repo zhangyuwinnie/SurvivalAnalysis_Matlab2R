@@ -1,0 +1,11 @@
+Modification for km.m file:
+
+Difference between km.m function and SAS LIFETEST Procedure:
+ni in LIFETEST Procedure is the number of survived objects prior to ti.
+ni in km.m is the number of survived objects at ti (the object dead at ti is also excluded).
+
+Files for testing:
+data: km_test_data.xlsx
+test file: test.m
+modified km function: km_modify.m
+output comparation: Matlab_output.png; SAS_output.png; R_output.png

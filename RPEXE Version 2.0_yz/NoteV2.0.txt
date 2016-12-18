@@ -1,0 +1,9 @@
+What is new in version 2.0 in addition to the previous version?
+
+1. In the new version the program will determine location of the change point given a naive p-value.
+
+2. The program is able to plot the estimated survival function using the change point determined by the naive p-value and overlay the estimated piecewise exponential estimate with the Kaplan-Meier curve.
+
+3. We also try to do Yates correction so that the change point can be the last event. 
+-- Adjustment 3.a: We give an extra number of death = "0.5" after the last event if there are 2 or more censoring after the last event
+-- Adjustment 3.b:  

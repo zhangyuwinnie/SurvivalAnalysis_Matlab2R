@@ -1,0 +1,832 @@
+% Define the page
+\documentclass[12pt] {article}
+\usepackage[dvips]{graphicx}
+\usepackage{epsfig}
+\usepackage{amsmath, amsfonts, amsthm}
+\setlength{\oddsidemargin}{.2in}
+\setlength{\topmargin}{0in}
+\setlength{\textwidth}{6.0in}
+\renewcommand{\baselinestretch}{1.0}
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand{\R}{\field{R}}
+\newcommand{\Z}{\field{Z}}
+\newcommand{\N}{\field{N}}
+\newcommand{\bt}[1]{\mbox{\boldmath $#1$}}
+\newcommand{\sR}{\hbox{I\kern-.1667em\hbox{R}}}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{definition}{Definition}[section]
+\newtheorem{remark}{Remark}[section]
+\newsavebox{\savepar}
+\newenvironment{boxit}{\begin{lrbox}{\savepar}
+\begin{minipage}[b]{5.5in}}
+{\end{minipage}\end{lrbox}\fbox{\usebox{\savepar}}}
+\usepackage{harvard}
+\begin{document}
+\begin{center}
+{\bf User Manual for {\Large R}educed {\Large P}iecewise 
+{\Large EX}ponential {\Large E}stimate (RPEXE) Software}
+\end{center}
+\vspace{.2in}
+\begin{center}
+\large{Gang Han, Michael J. Schell, and Jongphil Kim} \\
+\large{February 2014}\\
+\end{center}
+
+\section{General Information}
+RPEXE (Reduced Piecewise EXponential Estimate) is a set of MATLAB programs
+or R programs for estimating the survival probability with a reduced
+piecewise exponential approach proposed in Han et al. (2014). This set
+of programs:
+\begin{enumerate}
+\item Imposes a pre-specified order restriction on the failure rate, which can be decreasing, increasing, monotone, decreasing then increasing, or increasing
+    then decreasing;
+\item Computes the p-values (Han et al. 2012) at all event times to compare adjacent total time on tests;
+\item Reports the largest (the most non-significant) p-value at each iteration.
+\end{enumerate}
+After imposing the order restriction the number of candidate changepoints can be
+reduced significantly. Using the list of p-values and the critical p-value
+ ($\alpha^star$ in Han et al. 2014), one can decide the number and location of changepoints.
+
+This user manual introduces the RPEXE program with an example from Han et al. (2014).
+Section~\ref{sec2} sketches the model and implementation. Section~\ref{sec3}
+describes inputs/outputs and files used by the program.
+Section~\ref{sec4} illustrates RPEXE program with the Non-small-cell lung cancer example in Han, et al. (2014).
+
+
+\section{Model and implementation}
+\label{sec2}
+
+\subsection{Survival Estimates Given the Changepoints in the Failure Rate}
+We let $[Z]$
+denote the distribution of a generic random variable
+$Z$ and $z$ denote a realization from $[Z].$
+We let ``log'' denote the natural logarithm.
+Suppose $X_e\in (0,\infty)$ is a random variable with the
+exponential distribution having parameter $\lambda$.
+Suppose $X_{pe}\in (0,\infty)$ is a random variable with
+a piecewise exponential distribution divided by
+change-points $t_{(1)}<t_{(2)}< \cdots <t_{(p)}$
+at which the failure rate varies.
+
+The p.d.f. $f(X_e|\lambda)$,
+survival function $S(X_e|\lambda)$, and hazard
+function $h(X_e|\lambda)$ are
+$f(X_e|\lambda) = \exp \left\{ -X_e/\lambda \right\}/\lambda$,
+$S(X_e|\lambda) = \exp \left\{ -X_e/\lambda \right\}$, and
+$h(X_e|\lambda) = f(X_e|\lambda)/S(X_e|\lambda) = 1/\lambda.$
+Further, the mean and median of $X_e$ are
+$E(X_e|\lambda)=\lambda$ and $M(X_e|\lambda) = \lambda \textrm{log}(2).$
+Define $t_{\left(0\right)}=0\,$and $t_{(p+1)}=\infty$. Let
+$\bt{\lambda}=$ $(\lambda_1,\lambda_2,\ldots,\lambda_{p+1})$ denote
+the vector of the unknown model parameters, where $1/\lambda_j$ is the
+instantaneous failure rate in $(t_{(j-1)},t_j]$ for
+$j=1,\ldots,p+1$. Define $E_0 = 1$ and
+$$E_j = \prod_{k=1}^j \exp
+\left\{ -\frac{t_{(k)} - t_{(k-1)}}{\lambda_k} \right\}
+= E_{j-1} \exp
+\left\{ -\frac{t_{(j)} - t_{(j-1)}}{\lambda_j} \right\}.$$
+Note that $(t_{(j)}, E_j)$ is the point where the
+$j^{\text{th}}$ piece of the $S(X_{pe}|\bt{\lambda})$ starts
+in the plot of $S(X_{pe}|\bt{\lambda})$ against $X_{pe}.$
+So $\left[(X_{pe}-t_{(j-1)})/E_{j-1}\right]\sim
+\textrm{Gamma}(1,\lambda_{j})$
+for $X_{pe}\in$ $\left[t_{(j-1)},t_{(j)}\right),$
+where $\textrm{Gamma}(1,\lambda_j)$ denotes the gamma distribution
+with location parameter $1$ and scale parameter $\lambda_j.$
+Thus, $S(X_{pe}|\bt{\lambda}),$
+$f(X_{pe}|\bt{\lambda}),$ $h(X_{pe}|\bt{\lambda}),$ and the cumulative
+hazard function $H(X_{pe}|\bt{\lambda})$ are
+\begin{equation}
+\label{survY}
+\begin{aligned}
+S(X_{pe}|\bt{\lambda}) & =  E_{j-1} \exp \left\{
+-\frac{X_{pe}-t_{(j-1)}}{\lambda_j} \right\}, \\
+f(X_{pe}|\bt{\lambda}) & =  E_{j-1} \frac{1}{\lambda_j}
+\exp \left\{ -\frac{X_{pe}-t_{(j-1)}}{\lambda_j} \right\}, \\
+h(X_{pe}|\bt{\lambda}) & =  \frac{1}{\lambda_j}, \\
+H(X_{pe}|\bt{\lambda}) & =  -\log(E_{j-1}) + \frac{X_{pe}-t_{(j-1)}}{\lambda_j},
+\end{aligned}
+\end{equation}
+for $X_{pe} \in (t_{(j-1)},t_{(j)}]$ and $j=1,\dots,p+1$.
+The mean and median survival times are
+$E(X_{pe}|\bt{\lambda})=$
+$\lambda_1 + \sum_{i=1}^p(\lambda_{i+1}-\lambda_i)E_i$
+and
+$\mu_{1/2}(X_{pe}|\bt{\lambda})=$
+$t_{(m)} + \lambda_{m+1} \log (2 E_m),$ respectively,
+where $m$ is in $\{1,\ldots,p\}$
+such that $E_m \geq 0.5$ and $E_{m+1} < 0.5$.
+
+Suppose a study involves $N$ patients, where $D$ of
+them failed at time points
+$t_1 \leq t_2 \leq \cdots \leq t_D,$ and the other
+$(N-D)$ subjects were censored at $t_{D+1},\ldots, t_N$.
+Let $t_{1^\star} < t_{2^\star} < \ldots < t_{D^\star}$
+denote all the distinct values in $\{t_1,\ldots,t_D\}$
+where $D^\star \leq D$. We assume that the censoring
+mechanism is independent with the distribution of the
+failure time. Define $t_0=0$. The total-time-on-test (TTOT)
+between $t_A$ and $t_B$ for $t_A < t_B$ is defined to
+be the sum of all subjects' times in $\left(t_A,t_B\right]$
+for all $t_A,t_B > 0$; i.e.,
+$$\textrm{TTOT}\left(t_A,t_B \right) = \sum^N_{j=1} \max \left[ 0,\,
+\min (t_j, t_B) - t_A \right].$$
+The normalized spacing between $t_A$ and $t_B$ is defined
+as TTOT$\left( t_A,t_B \right)/d_{AB}$, where $d_{AB} > 0$
+is the number of events occurred in $(t_A,t_B].$
+
+For exponentially distributed data,
+the maximum likelihood estimate (MLE) of $\lambda$ is
+$\widehat{\lambda}=\sum^N_{i=1}t_i/D$
+and the $100 (1-\alpha) \%$
+equal-tailed confidence interval of $\lambda$ is
+$$\lambda \in \left[ \frac{2D \widehat{\lambda}}
+{\chi_{2D,1-\alpha/2}^2}, \,\,
+\frac{2 D \widehat{\lambda}}{\chi_{2D,\alpha/2}^2} \right],$$
+where $\chi^2_{2D,\alpha/2}$ is the $100\times \alpha/2 \%$
+lower quantile of the central chi-square distribution
+with $2D$ degree of freedom.
+Similarly, the first and second order derivatives of
+the likelihood function of the piecewise exponential
+distribution $\log L(\bt{\lambda}|t_1,\ldots,t_N)$
+lead to the MLE of $\lambda_j,$ i.e.,
+$$\widehat{\lambda}_j = \frac{\textrm{TTOT}(t_{(j-1)},
+t_{(j)})}{d_{(j)}}$$ and confidence interval of $\lambda_j$ is
+$$\lambda_j \in \left[ \frac{2d_{(j)} \widehat{\lambda}_{j}}
+{\chi_{2 d_{(j)},1-\alpha/2}^2}, \,\,
+\frac{2 d_{(j)} \widehat{\lambda}_{j}}
+{\chi_{2d_{(j)},\alpha/2}^2} \right],$$
+for all $j = 1,\ldots,p+1.$ The MLEs of $S(X_{pe}|\bt{\lambda})$, $h(X_{pe}|\bt{\lambda})$,
+and $M(X_{pe}|\bt{\lambda})$ are $S(X_{pe}|\widehat{\bt{\lambda}})$,
+$h(X_{pe}|\widehat{\bt{\lambda}})$, and $M(X_{pe}|\widehat{\bt{\lambda}}),$
+respectively.
+The confidence intervals of
+$\{S(X_{pe}|\bt{\lambda})$, $h(X_{pe}|\bt{\lambda}),$ $M(X_{pe}|\bt{\lambda})\}$
+can be computed by plugging in the lower and upper bounds of $\bt{\lambda}.$
+Multiple testing adjustments, e.g., Bonferroni approach, can be
+implemented to control the level of a confidence interval
+when multiple model parameters are involved.
+
+
+\subsection{Three Components for Determining the Significant Changepoints}
+The key to the proposed RPEXE model is to set change-points
+$t_{(1)},\ldots,t_{(p)}$ given the data $\{t_1,\ldots,t_N\}$.
+Our approach builds on three components.
+The first component is a likelihood ratio test.
+Let $x_1$ and $x_2$ denote realizations from
+Gamma$(n_1,\lambda_1)$ and Gamma$(n_2,\lambda_2)$, respectively.
+We suppose that $n_1$ and $n_2$ are {\em known} positive integers
+since the numbers of events will be known positive
+integers.
+The scale parameters $\lambda_1$ and $\lambda_2$ are {\em unknown}.
+The null and alternative hypotheses are
+$$
+\textrm{H}_0:\lambda_1=\lambda_2\, \textrm{ vs. H}_1:\lambda_1 \neq \lambda_2.
+$$
+Under the null hypothesis, we let $\lambda_1=\lambda_2=\lambda.$
+The likelihood ratio test (LRT) statistic can be derived as
+$$\phi\left(x_{1},\, x_{2}\right) =
+\left( \frac{x_{1}}{x_{1}+x_{2}}\right)^{n_1}
+\left(\frac{x_2}{x_{1}+x_{2}}\right)^{n_2}.$$
+The level $\alpha$ likelihood ratio test rejects H$_0$ if
+$\phi\left(x_{1},\, x_{2}\right) \leq C_{\alpha},$
+where $C_\alpha$ is a real value such that
+$P\left( \phi(X_1,X_2) \leq C_\alpha \right)=\alpha$ under H$_0$.
+In Han et al. (2012), we quantified the p-value
+and proved that this exact likelihood ratio test is the
+uniformly most powerful unbiased (UMPU) test of
+H$_0$ vs. H$_1$. This test is useful for detecting
+failure rate change in a single patient group and for
+testing the equivalence of the failure rates
+of two exponentially distributed groups.
+
+The second component is a backward elimination procedure,
+which is used with the LRT to detect significant changes
+in the failure rate over time. Specifically, given
+$t_{1^\star} < t_{2^\star} < \cdots < t_{D^\star},$
+it is possible to model the data with piecewise exponential
+distributions having $1$ to $D^\star$ pieces. We let $\{$T$_1,$T$_2,
+\ldots,$T$_{D^\star}\}$
+denote $D^\star$ TTOTs in $(0,t_{1^\star}),(t_{1^\star},t_{2^\star}),\ldots,
+(t_{D^\star -1},t_{D^\star})$ and $\{d_1,d_2,\ldots,d_{D^\star}\}$
+denote the corresponding numbers of events. Thus
+$D=\sum_{i=1}^{D^\star} d_i.$ The backward elimination (BE)
+procedure has four steps:
+\begin{description}
+\item[Step 1.] Let $\ell=D^\star.$ Compute $\ell-1$ pairs of
+TTOTs, $\left\{(\textrm{T}_1,\textrm{T}_2),\ldots,
+(\textrm{T}_{\ell-1},\textrm{T}_{\ell})\right\},$ and the
+corresponding pairs of events, $\{(d_1,d_2),\ldots,(d_{\ell-1},d_\ell)\}$
+\item[Step 2.] Compute the $\ell-1$ p-values using the LRT for the
+$\ell-1$ pairs of TTOTs.
+\item[Step 3.] If the largest p-value exceeds a critical value
+$\alpha^\star$ and $\ell>1,$ add up the corresponding pair
+of TTOTs and pair of events (so that there become $\ell-2$
+pairs), and let $\ell=\ell-1$.
+\item[Step 4.]
+Repeat steps 2 and 3 until the largest p-value is smaller than a
+critical value $\alpha^\star$ or $\ell=0.$
+\end{description}
+
+The third component is an optional order restriction.
+Expert knowledge may suggest that the change in failure
+rate follows a pattern. For example, the failure rate of NSCLC
+patients can decrease over time.
+In such situations, integrating appropriate order restrictions
+with a statistical model may be necessary. To implement simple
+order restriction, we use the pool-adjacent-violators-algorithm
+(PAVA). The RPEXE with non-increasing
+and non-decreasing failure rates, which we will call isotonic
+RPEXE and antitonic RPEXE, are computed by first implementing
+the PAVA to the $D^\star$ normalized spacings
+$\{\widehat{\lambda}_1,\ldots, \widehat{\lambda}_{D^\star}\},$
+and then running the LRT test of H$_0$ vs. H$_1.$ We let $L$
+denote the number of level sets after the PAVA operation.
+The resulting $L$ estimates $\widehat{\lambda}_1,\ldots, \widehat{\lambda}_L$
+will satisfy the assumed order restriction,
+and will be used in the BE procedure. The optional order restriction
+on the failure rate includes 1) isotonic, 2) antitonic, 3) monotonic,
+4) increasing then decreasing (IDFR), and 5) decreasing then increasing (DIFR).
+One can also choose to impose no order restriction.
+When the partial order restriction is composed of multiple
+orderings (e.g., IDFR order where the shift time from an
+increasing to decreasing failure rate is not known), we
+use the ordering that maximizes the likelihood.
+
+Integrating the three components, we choose the change-points
+by first implementing an order restriction on the failure rate
+estimates, and then eliminate all insignificant change-points
+detected by the likelihood ratio test using the BE procedure.
+The elimination procedure stops when the largest p-value of
+all possible change-points is less than a critical value
+$\alpha^\star,$ which controls the type I error of the
+simultaneous inference of all changepoints.
+
+
+\subsection{Computation of the Critical Value $\alpha^\star$ }
+
+Given a confidence level $\alpha,$ we estimate the critical value
+$\alpha^\star$ by $\widehat{\alpha}^\star$ using a 3-stage Monte
+Carlo (MC) procedure:
+\begin{description}
+\item[Stage 1.] Generate an i.i.d. sample $\{x_1,\ldots,x_D\}$
+from Exponential$(1)$ (or Gamma$(1,1)$). Let $D^\star$ denote the number of distinct
+values in $\{x_1,\ldots,x_D\}.$
+\item[Stage 2.] If an order restriction is imposed, using PAVA
+to combine the values that violate the restriction to obtain
+$L$ distinct level sets.
+\item[Stage 3.] Initialize $\ell = D^\star,$ or $\ell = L$ if
+there is an order restriction. Repeat the steps~2-3 in the BE
+procedure $(\ell-1)$ times. Save the minimum of the p-values
+as $p_{\textrm{min}}$.
+\end{description}
+Repeat the above 3-stage MC procedure $N_s$ times. Let
+$\widehat{\alpha}^\star$ denote the $\alpha$th lower
+quantile among the $N_s$ values.
+The $95\%$ asymptotic lower and upper bounds of $\alpha^\star$
+are the $N_s^l$th and $N_s^u$th smallest p-values among all the
+$N_s$ $p_{\textrm{min}}$ values, where
+$N_s^l = N_s \times \left(\alpha - z^{0.025} \sqrt{\alpha (1-\alpha)/N_s}\right),$
+$N_s^u = N_s \times \left(\alpha + z^{0.025} \sqrt{\alpha (1-\alpha)/N_s}\right),$
+and $z^{0.025}$ is the upper $0.025$ quantile of the
+standard normal distribution.
+
+Following the aforementioned algorithm, we have numerically
+estimated some critical values for practical use (Han et al. 2014).
+The log of $\widehat{\alpha}^\star$ values were
+found to be linearly related with the log of the event number
+$D$ with $R^2>0.9$. Thus we fit two regression lines
+of $\log (\widehat{\alpha}^\star)$ on $\log(D)$ for
+$\alpha = 0.05$ and $\alpha = 0.2,$ respectively, which can be
+used as simple formulas to generate $\widehat{\alpha}^\star$
+given $\alpha$ and $D\in[20, 800].$
+Table~\ref{tabest2}
+shows the estimated regression coefficients
+$(\widehat{\beta}_0, \widehat{\beta}_1)$
+in regression lines of the form
+$$\log (\widehat{\alpha}^\star) = \widehat{\beta}_0 +
+\widehat{\beta}_1 \times log(D)$$ for isotonic RPEXE,
+monotonic RPEXE, and BE with $\alpha=0.05$ or $\alpha=0.1,$
+and $D\in[20,800].$ In practice, $\alpha^\star$ can
+simply be estimated as
+$$\widehat{\alpha}^\star = \exp(\widehat{\beta}_0) \times
+D^{\widehat{\beta}_1},$$
+given that the number of event $D$ is between 20 and 800.
+\begin{table}[htbp]
+    \centering
+    %\footnotesize
+    \begin{tabular}{|c|c|c|c|c|}
+    \hline
+        & Isotonic RPEXE & Monotonic RPEXE & Umbrella RPEXE  & BE, no order restriction  \\
+    \hline
+    $\alpha=0.05$  & $-3.483; -0.380$ & $-4.233; -0.394$
+                   & $-1.223; -2.704$ & $-2.356; -1.360$  \\
+    \hline
+    $\alpha=0.1$   & $-2.670; -0.372$ & $-3.448; -0.385$
+                   & $-1.195; -2.024$ & $-1.511; -1.370$   \\
+    \hline
+    \end{tabular}
+\caption{Estimated linear coefficients ``$\widehat{\beta}_0; \widehat{\beta}_1$'' of
+the isotonic RPEXE, monotonic RPEXE, umbrella alternative RPEXE,
+and BE for $\alpha = 0.05$ and $\alpha = 0.1.$ }
+\label{tabest2}
+\end{table}
+
+\subsection{Testing Exponentiality}
+The RPEXE program can be used to test the exponentiality of an observed set
+of survival times because it can detect all significant changepoints in the
+failure rate. Without any significant changepoints the failure rate is a constant
+and the survival distribution is exponential.
+
+To checking the exponential distribution, one needs to inspect whether any p-value
+in the list of (max) p-values from the backward elimination is lower than the
+critical value $\alpha^\star.$ If yes, the exponential assumption is violated.
+We will incorporate this test in the next version of the RPEXE program.
+
+
+
+\section{Job Files and Inputs/Outputs}
+\label{sec3}
+
+\subsection{RPEXE in MATLAB}
+\label{sec3.1}
+
+
+This section summarizes the files and the inputs/outputs of the
+RPEXE MATLAB program.
+Users of the RPEXE R program please go to
+\ref{sec3.2}.
+
+
+\subsubsection{Job files}
+
+\begin{enumerate}
+\item Files for the likelihood ratio test
+\begin{itemize}
+\item {\tt totaltest.m} takes inputs (times and the indicator of event/censoring) and returns the total time on test and the number of event.
+
+\item {\tt exact$\_$pvalue.m} computes the exact p-value of the test statistic
+    in the likelihood ratio test. {\tt exact$\_$pvalue.m} is called by both
+    {\tt loopcuts.m}, {\tt loopcuts$\_$ttot.m}, and {\tt loopcuts$\_$umbrella.m}.
+
+\item {\tt bisec.m} runs the bisection algorithm to return a value satisfying
+    a certain equality. {\tt bisec.m} is called by {\tt exact$\_$pvalue.m}.
+\end{itemize}
+
+\item Files for the backward elimination
+\begin{itemize}
+\item {\tt loopcuts.m} uses a loop format to search changepoints in the backward elimination. This file is called by {\tt RPEXEv1.m} if the order restriction
+    is isotonic, antitonic, monotone, and no restriction.
+
+\item {\tt loopcuts$\_$ttot.m} is the backward elimination job file used by {\tt RPEXEv2.m}. It performs the same job but using the total time on test instead of the event times.
+
+\item {\tt loopcuts$\_$umbrella.m} is the backward elimination job file
+    used by {\tt RPEXEv1.m} when the failure rate is increasing-decreasing or
+    decreasing-increasing.
+\end{itemize}
+
+\item Files for implementing the order restriction
+\begin{itemize}
+\item {\tt pava.m} uses the event times and censoring status and returns time points (along with the total time on test and the number of events) where the hazard is decreasing (or increasing). {\tt pava.m} is called if any order restriction is specified.
+
+\item {\tt umbrella.m} uses the umbrella alternative to merge certain entries to make sure the sequence of ttot/deaths increasing then decreasing or decreasing then increasing. (Note that the pava function makes the sequence non decreasing.  This function directly uses the pava function.)
+
+\item {\tt gamllik.m} computes the log likelihood from the gamma distribution under
+    an order restriction. This function is used to select the trend that maximizes the likelihood.
+\end{itemize}
+
+\item Driver files
+\begin{itemize}
+\item {\tt RPEXEv1.m} is the main job file if the input is a set of event times and the corresponding censoring status. It also requires the order restriction. The output includes the list of changepoints from the backward elimination procedure with the p-values, the final trend information, model information under different trends, and the failure rate peak information under the umbrella alternative.
+
+\item {\tt RPEXEv2.m} is the main job file if the input is a set of total-time-on-tests (instead of event times). The output structure is the same as {\tt RPEXEv1.m}. The current version of the program (ver 1.0) does not allow umbrella alternative. We will add the function in a later version.
+\end{itemize}
+
+\end{enumerate}
+
+\subsubsection{Inputs and outputs}
+
+This package has two driver files {\tt RPEXEv1.m} and
+{\tt RPEXEv2.m}, which can take different types of
+inputs but return the same outputs.
+
+Inputs to {\tt RPEXEv1.m} include
+\begin{itemize}
+\item {\tt `EventTime' = time}: a sequence of times at which the events occur. Note that 'EventTime' is a required input.
+\item {\tt `Censor' = censor}: a sequence of dichotomous values indicating censored or not (0=censored and 1=not censored).
+    We use {\tt 0} to denote censoring and {\tt 1} to denote event. The length of {\tt time} and {\tt censor} are identical. Note that 'Censor' is a required input.
+\item {\tt `CutTimes' = cuttimes}, a vector of unique and sorted changepoint candidates. Default is sorted (from small to large) event times. Default == 'EventTime'.
+\item {\tt `Trend'}, indicator of the monotonicity assumption
+    \begin{itemize}
+        \item {\tt 0}: no monotonic assumption;
+        \item {\tt 1}: failure rate is decreasing over time;
+        \item {\tt 2}: failure rate is increasing over time;
+        \item {\tt 3}: monotonic failure rate;
+        \item {\tt 4}: failure rate is increasing and then decreasing;
+        \item {\tt 5}: failure rate is decreasing and then increasing;
+        \item {\tt 6}: failure rate is increasing and then decreasing. The event time corresponding to the highest failure rate will not be considered as a changepoint in order to improve the program stability;
+        \item {\tt 7}: failure rate is decreasing and then increasing. The event time corresponding to the highest failure rate will not be considered as a changepoint in order to improve the program stability.
+    \end{itemize}
+    Default value of 'Trend'== 0 corresponding to no order restriction.
+\end{itemize}
+
+Inputs to {\tt RPEXEv2.m} are based on the total time on test and the
+number of events:
+\begin{itemize}
+\item {\tt `Times' = times}, a sequence of times (in ascending order) at which the events occur. For instance, in SEER data sets {\tt times} are the end of each month.
+\item {\tt `ttot' = ttot}, a vector containing the total time on test during the time periods indicated by {\tt times}.
+\item {\tt `death' = deaths}, the number of events occurred during
+    the time periods indicated by {\tt times}.
+\item {\tt `CutTimes' = cuttimes}, same as for {\tt RPEXEv1.m},
+    {\tt cuttimes} is a vector of unique and sorted changepoint candidates. Default is sorted (from small to large) event times. Default == 'times'.
+\item {\tt `Monotone' = monotone}, an input having three levels indicating the monotonic assumption
+    \begin{itemize}
+        \item {\tt 0}: no monotonic assumption;
+        \item {\tt 1}: failure rate is decreasing over time;
+        \item {\tt 2}: failure rate is increasing over time.
+    \end{itemize}
+\end{itemize}
+
+The outputs from both {\tt RPEXEv1.m} and
+{\tt RPEXEv2.m} have the same form. Suppose the output is a
+structure named ``{\tt pexeout},'' then its elements are
+\begin{itemize}
+\item {\tt pexeout.times}: changepoint times;
+\item {\tt pexeout.pvalues}: p-values corresponding to the times {\tt pexeout.times};
+\item {\tt pexeout.trend}:  trend information in text. It is one of the following: 'No order restriction,' 'Decreasing failure rate,' 'Increasing failure rate,' 'Monotone failure rate,'
+     'Increasing-decreasing failure rate,'  and 'Decreasing-increasing failure rate.'
+\item {\tt pexeout.struct}:  structure information for multiple order restrictions;
+\item {\tt pexeout.changet}: changepoint time corresponding to lowest or highest failure rate for umbrella alternatives.
+\end{itemize}
+Note that {\tt pexeout.times} and {\tt pexeout.times} are in the order of the backward selection. Each iteration will select a time point having the largest p-value.
+
+\subsection{RPEXE in R}
+\label{sec3.2}
+
+This section summarizes the R functions and the inputs/outputs of the
+RPEXE R program. Users of the RPEXE MATLAB program please go to
+\ref{sec3.1}.
+
+
+\subsubsection{R functions}
+\begin{enumerate}
+
+\item Functions for the likelihood ratio test
+\begin{itemize}
+\item {\tt totaltest} takes inputs (times and the indicator of event/censoring) and returns the total time on test and the number of event.
+\item {\tt exact$\_$pvalue} computes the exact p-value of the test statistic
+    in the likelihood ratio test. {\tt exact$\_$pvalue} is called by both
+    {\tt loopcuts}, {\tt loopcuts$\_$ttot}, and {\tt loopcuts$\_$umbrella}.
+\item {\tt bisec} runs the bisection algorithm to return a value satisfying
+    a certain equality. {\tt bisec} is called by {\tt exact$\_$pvalue}.
+\end{itemize}
+
+\item Functions for the backward elimination
+\begin{itemize}
+\item {\tt loopcuts} uses a loop format to search changepoints in the backward elimination. This file is called by {\tt RPEXEv1} if the order restriction
+    is isotonic, antitonic, monotone, and no restriction.
+\item {\tt loopcuts$\_$umbrella} is the backward elimination job file
+    used by {\tt RPEXEv1} when the failure rate is increasing-decreasing or
+    decreasing-increasing.
+\end{itemize}
+
+\item Functions for implementing the order restriction
+\begin{itemize}
+\item {\tt pava} uses the event times and censoring status and returns time points (along with the total time on test and the number of events) where the hazard is decreasing (or increasing). {\tt pava} is called if any order restriction is specified.
+
+\item {\tt umbrella} uses the umbrella alternative to merge certain entries to make sure the sequence of ttot/deaths increasing then decreasing or decreasing then increasing. (Note that the pava function makes the sequence non decreasing.  This function directly uses the pava function.)
+
+\item {\tt gamllik} computes the log likelihood from the gamma distribution under
+    an order restriction. This function is used to select the trend that maximizes the likelihood.
+\end{itemize}
+
+
+\item Driver files
+\begin{itemize}
+\item {\tt RPEXEv1} is the driver function for inputs being a set of event times and the corresponding censoring status. It also requires the order restriction. The output includes the list of changepoints from the backward elimination procedure with the p-values, the final trend information, model information under different trends, and the failure rate peak information under the umbrella alternative.
+\end{itemize}
+
+\end{enumerate}
+
+
+\subsubsection{Inputs and outputs}
+
+Inputs to the R function {\tt RPEXEv1} has the format 
+{\tt (EventTime=NA,eventtime,Censor=NA,censor,CutTimes=NA,cuttime=1,Trend=NA,trend=0)}, which is different from the MATLAB format but contains the same input information. 
+
+\begin{itemize}
+\item {\tt EventTime}: any text string to indicate whether there is event time. If it is left empty (or given value NA) then there is no event time. Default == NA. 
+\item {\tt eventtime}: a sequence of times at which the events occur. This is a required input.
+\item {\tt Censor}: any text string to indicate whether there is censoring status. If it is left empty (or given value NA) then there is no censoring. Default == NA. 
+\item {\tt censor}: a sequence of dichotomous values indicating censored or not (0=censored and 1=not censored).
+    We use {\tt 0} to denote censoring and {\tt 1} to denote event. The length of {\tt time} and {\tt censor} are identical. Note that 'Censor' is a required input.
+\item {\tt Cuttimes}: any text string to indicate whether there are candidates of the changepoints. If it is left empty (or given value NA) then there is NO changepoint candidate. Default == NA.
+\item {\tt cuttime}, a vector of unique and sorted changepoint candidates. Default is sorted (from small to large) event times. Default == event times.
+\item {\tt Trend}, text string indicator about whether there is trend assumption. If left empty (or given value N) then there is no 
+\item {\tt trend}, indicator of the monotonicity assumption
+    \begin{itemize}
+        \item {\tt 0}: no monotonic assumption;
+        \item {\tt 1}: failure rate is decreasing over time;
+        \item {\tt 2}: failure rate is increasing over time;
+        \item {\tt 3}: monotonic failure rate;
+        \item {\tt 4}: failure rate is increasing and then decreasing;
+        \item {\tt 5}: failure rate is decreasing and then increasing;
+        \item {\tt 6}: failure rate is increasing and then decreasing. The event time corresponding to the highest failure rate will not be considered as a changepoint in order to improve the program stability;
+        \item {\tt 7}: failure rate is decreasing and then increasing. The event time corresponding to the highest failure rate will not be considered as a changepoint in order to improve the program stability.
+    \end{itemize}
+    Default value of 'Trend'== 0 corresponding to no order restriction.
+\end{itemize}
+
+The outputs from the R function {\tt RPEXEv1} 
+have the same format as in MATLAB RPEXE. Suppose the output is a
+structure named ``{\tt pexeout},'' then its elements are
+\begin{itemize}
+\item {\tt pexeout\$times}: changepoint times;
+\item {\tt pexeout\$pvalues}: p-values corresponding to the times {\tt pexeout\$times};
+\item {\tt pexeout\$trend}:  trend information in text. It is one of the following: 'No order restriction,' 'Decreasing failure rate,' 'Increasing failure rate,' 'Monotone failure rate,' 'Increasing-decreasing failure rate,'  and 'Decreasing-increasing failure rate.'
+\item {\tt pexeout\$struct}:  structure information for multiple order restrictions;
+\item {\tt pexeout\$changet}: changepoint time corresponding to lowest or highest failure rate for umbrella alternatives.
+\end{itemize}
+Note that {\tt pexeout\$times} and {\tt pexeout\$times} are in the order of the backward selection where each iteration selects a time point having the largest p-value.
+
+
+\subsection{Future Work Topics}
+We will add the following features in newer version of the program.
+\begin{enumerate}
+\item Include the umbrella order restriction in the {\tt RPEXEv2.m} file.
+\item Incorporating the formula for $\alpha^\star$ in the coding to translate the
+naive p-value to the real p-value.
+\item Testing the exponentiality of the survival times. Return the p-value and
+the estimated power of the test. If one or more significant changepoints are
+identified, indicate up to what time the exponential assumption can hold.
+\item Given the critical changepoints, report the descriptive statistics.
+\end{enumerate}
+
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\section{A Non-small-cell Lung Cancer Example}
+We demonstrate using {\tt RPEXEv1.m} in MATLAB and {\tt RPEXEv1} in R
+for a non-small-cell lung cancer example. The hazard rate is believed 
+to decrease over time. We will demonstrate 1), how to load the data, 
+2), how to run RPEXE package with the decreasing hazard rate and monotonic
+hazard rate assumptions, and 3), how to interpret the results.
+
+
+
+\begin{description}
+\item[]
+The inputs in this example include times when events/censoring occur and
+indicators for censoring, i.e.,
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+[ostime oscensor] =
+3.9123 1.0000
+4.2740 1.0000
+... ...
+4.6027 1.0000
+32.2192 0;
+\end{verbatim}}
+\end{boxit} \\
+
+The command to run the program with no monotonic assumption is
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+pexeout0 = MPEXEv1('EventTime',ostime,'Censor',oscensor);
+\end{verbatim}}
+\end{boxit} \\
+
+The result is
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+pexeout0.times = ...
+2.7288
+...
+6.4110
+1.6438
+19.2986;
+\end{verbatim}}
+\end{boxit} \\
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+pexeout0.pvalues = ...
+0.9962
+...
+0.3431
+0.0020
+0.0002;
+\end{verbatim}}
+\end{boxit} \\
+
+If we assume the hazard is decreasing over time,
+the code and result are listed next.
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+pexeout1 = ...
+MPEXEv1('EventTime',ostime,'Censor',oscensor,'Monotone',1);
+[pexeout1.times pexeout1.pvalues] =
+24.4603 0.9661
+13.7096 0.8089
+48.8548 0.7976
+25.7096 0.7065
+19.5945 0.1670
+29.0301 0.0000
+\end{verbatim}}
+\end{boxit} \\
+
+While if we assume the hazard is increasing over time,
+the code and result are listed next.
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+pexeout1 = ...
+MPEXEv1('EventTime',ostime,'Censor',oscensor,'Monotone',2);
+[pexeout1.times pexeout1.pvalues] =
+1.3808 0.8258
+1.0521 0.4156
+1.6438 0.0171
+\end{verbatim}}
+\end{boxit} \\
+
+\item[Example 2. Analysis of a dataset from the SEER Program]
+In the Surveillance, Epidemiology and End Results (SEER) study,
+the number of events/censoring is counted every month.
+We thus compute the total time on test (assuming that events occurred
+in the middle of the month) in every month and use the second version
+of the program {\tt MPEXEv1} to analyze one of such datasets.
+The inputs (time, total time on test, and number of events) have
+the form
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+[times_dist ttot_dist death_dist] =
+1 98953 8606
+2 86505.5 16249
+...
+234 277 1
+239 52.5 1
+245 74 1
+\end{verbatim}}
+\end{boxit} \\
+
+The command to use {\tt MPEXEv1}, with no assumption on monotonicity, is
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+pexeout0 = MPEXEv2('Times',times_dist,'ttot',...
+ttot_dist,'death',death_dist);
+\end{verbatim}}
+\end{boxit} \\
+
+Part of the result is
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+[pexeout0.times pexeout0.pvalues] =
+158.0000 0.9960
+163.0000 0.9949
+...
+53.0000 0.0000
+16.0000 0.0000
+25.0000 0
+4.0000 0
+1.0000 0.0000
+\end{verbatim}}
+\end{boxit} \\
+
+\end{description}
+
+
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%\section{Examples}
+We demonstrate using {\tt MPEXEv1} in two examples below.
+\begin{description}
+\item[Example 1. A lung cancer clinical trial at the Moffitt cancer center]
+The inputs in this example include times when events/censoring occur and
+indicators for censoring, i.e.,
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+[eventtime censor] =
+1.7211 1.0000
+8.0557 1.0000
+... ...
+0.3827 1.0000
+0.2753 0;
+\end{verbatim}}
+\end{boxit} \\
+
+The command to run the program with hazard decreasing over time assumption is
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+trend=1;
+pexeout11 = RPEXEv1(EventTime="EventTime",eventtime,
+Censor="Censor",censor,Cutime=NA,cuttime=NA,Trend=``Trend",trend);
+\end{verbatim}}
+\end{boxit} \\
+
+The result is
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+pexeout11$times = ...
+0.3827
+2.7019
+22.2418
+2.2839
+9.0557;
+\end{verbatim}}
+\end{boxit} \\
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+pexeout11$pvalues = ...
+0.9839
+0.7966
+0.3711
+0.1746
+0.00071;
+\end{verbatim}}
+\end{boxit} \\
+
+If we assume the hazard is increasing and then decreasing;,
+the code and result are listed next.
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+trend=4;
+pexeout12 = ...
+RPEXEv1(EventTime="EventTime",eventtime,Censor="Censor",censor,
+Cutime=NA,cuttime=NA,Trend=``Trend",trend);
+[pexeout12$times pexeout12$pvalues] =
+0.2753 0.9152
+1.8925 0.8240
+2.7019 0.7966
+2.1745 0.7484
+22.2418 0.3711
+1.7211 0.1946
+2.2839 0.1746
+8.0557 0.0007
+\end{verbatim}}
+\end{boxit} \\
+
+\end{description}
+
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%\section{Job Files}
+
+
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+
+\begin{center}
+{\bf Disclaimer}
+\end{center}
+This set of programs is free software:
+you can redistribute it and/or modify  it
+under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or any
+later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY and without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  The author
+accepts no responsibility or liability for any loss or damage
+occasioned by its use.  See the GNU Lesser General Public License for
+more details (http://www.gnu.org/licenses/).
+
+
+
+\begin{center}
+  {\bf Reference}
+\end{center}
+\noindent
+Han, G., Schell, M., and Kim, J. (2012) ``Comparing Two Exponential Distributions Using the Exact Likelihood Ratio Test,'' \textit{Statistics in Biopharmaceutical Research}, 4(4), 348-356.
+\\
+
+\noindent
+Han, G., Schell, M., and Kim, J. (2014) ``Improved Survival Modeling in Cancer Research Using a Reduced Piecewise Exponential Approach,'' \textit{Statistics in Medicine}, 33(1), 59-73.
+
+\end{document}
+

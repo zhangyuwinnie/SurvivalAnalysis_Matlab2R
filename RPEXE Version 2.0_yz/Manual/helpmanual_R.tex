@@ -1,0 +1,209 @@
+% Define the page
+\documentclass[12pt] {article}
+\usepackage[dvips]{graphicx}
+\usepackage{epsfig}
+\usepackage{amsmath, amsfonts, amsthm}
+\setlength{\oddsidemargin}{.2in}
+\setlength{\topmargin}{0in}
+\setlength{\textwidth}{6.0in}
+\renewcommand{\baselinestretch}{1.0}
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand{\R}{\field{R}}
+\newcommand{\Z}{\field{Z}}
+\newcommand{\N}{\field{N}}
+\newcommand{\bt}[1]{\mbox{\boldmath $#1$}}
+\newcommand{\sR}{\hbox{I\kern-.1667em\hbox{R}}}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{definition}{Definition}[section]
+\newtheorem{remark}{Remark}[section]
+\newsavebox{\savepar}
+\newenvironment{boxit}{\begin{lrbox}{\savepar}
+\begin{minipage}[b]{5.5in}}
+{\end{minipage}\end{lrbox}\fbox{\usebox{\savepar}}}
+\usepackage{harvard}
+\begin{document}
+\begin{center}
+{\bf User Manual for Reduced Piecewise Exponential Survival Software}
+\end{center}
+\vspace{.2in}
+\begin{center}
+\large{July 2011}
+\end{center}
+
+\section{General Information}
+This reduced piecewise exponential survival software implements
+the likelihood ratio test procedure in Han, Schell, and Kim (2009).
+Inputs to the program can be either times when events/censoring
+occur or the vectors of total time on test and the number of
+events. Outputs of the programs are times of events and
+the corresponding p-values. The order of times and p-values
+is determined by a backward elimination procedure.
+Details about the model and implementation are given in
+Han, Schell, and Kim (2009). This program can run in
+R version $12$ and above.
+
+
+\section{Inputs and Outputs}
+\subsection{Inputs}
+This software has one driver files {\tt MPEXEv1}
+Inputs to {\tt MPEXEv1} include
+\begin{itemize}
+\item {\tt `EventTime' = time}, a vector having the times of the
+events occurred and of censoring. Note that 'EventTime' is a
+required input.
+\item {\tt `Censor' = censor}, a vector with {\tt 0} or {\tt 1}
+indicating whether an observation is an event or censored. We
+use {\tt 0} to denote censoring and {\tt 1} to denote event. The length
+of {\tt time} and {\tt censor} are identical. Note that 'Censor'
+is a required input.
+\item {\tt `CutTimes' = cuttimes}, a vector of the potential
+times where the piecewise exponential model is divided. Note that
+{\tt `CutTimes'} is an optional input. By default,
+{\tt cuttimes} is a vector of times when the events occur.
+\item {\tt `Monotone' = monotone}, an indicator with values
+and meanings
+\begin{itemize}
+\item {\tt 0}: no monotonic assumption;
+\item {\tt 1}: assuming that the hazard is decreasing over time;
+\item {\tt 2}: assuming that the hazard is increasing over time;
+\item {\tt 3}: assuming that the hazard is monotonic;
+\item {\tt 4}: assuming that the hazard is increasing and then decreasing;
+\item {\tt 5}: assuming that the hazard is decreasing and then decreasing;
+\item {\tt 6}: assuming that the hazard is increasing and then decreasing with the peak removed first;
+\item {\tt 7}: assuming that the hazard is decreasing and then increasing with the peak removed first;
+\end{itemize}
+Note that {\tt `Monotone'} is an optional input. The default value of {\tt `Monotone'} is $0.$
+\end{itemize}
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\subsection{Outputs}
+Suppose the output is a structure {\tt pexeout}. The two elements are
+\begin{itemize}
+\item {\tt pexeout.times}: the times where the piecewise exponential model
+are divided.
+\item {\tt pexeout.pvalues}: p-values corresponding to {\tt pexeout.times}.
+Note that {\tt pexeout.times} and {\tt pexeout.times} are in the order of
+the backward selection. Each iteration will select a time point having the
+largest p-value.
+\end{itemize}
+\newpage
+
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\section{Examples}
+We demonstrate using {\tt MPEXEv1} in two examples below.
+\begin{description}
+\item[Example 1. A lung cancer clinical trial at the Moffitt cancer center]
+The inputs in this example include times when events/censoring occur and
+indicators for censoring, i.e.,
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+[eventtime censor] =
+1.7211 1.0000
+8.0557 1.0000
+... ...
+0.3827 1.0000
+0.2753 0;
+\end{verbatim}}
+\end{boxit} \\
+
+The command to run the program with hazard decreasing over time assumption is
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+trend=1;
+pexeout11 = RPEXEv1(EventTime="EventTime",eventtime,
+Censor="Censor",censor,Cutime=NA,cuttime=NA,Trend=``Trend",trend);
+\end{verbatim}}
+\end{boxit} \\
+
+The result is
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+pexeout11$times = ...
+0.3827
+2.7019
+22.2418
+2.2839
+9.0557;
+\end{verbatim}}
+\end{boxit} \\
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+pexeout11$pvalues = ...
+0.9839
+0.7966
+0.3711
+0.1746
+0.00071;
+\end{verbatim}}
+\end{boxit} \\
+
+If we assume the hazard is increasing and then decreasing;,
+the code and result are listed next.
+
+\begin{boxit} {\tt
+\noindent
+\begin{verbatim}
+trend=4;
+pexeout12 = ...
+RPEXEv1(EventTime="EventTime",eventtime,Censor="Censor",censor,
+Cutime=NA,cuttime=NA,Trend=``Trend",trend);
+[pexeout12$times pexeout12$pvalues] =
+0.2753 0.9152
+1.8925 0.8240
+2.7019 0.7966
+2.1745 0.7484
+22.2418 0.3711
+1.7211 0.1946
+2.2839 0.1746
+8.0557 0.0007
+\end{verbatim}}
+\end{boxit} \\
+
+\end{description}
+
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\section{Job Files}
+Besides one driver file discussed above ({\tt RPEXEv1},
+the package include the files below.
+\begin{enumerate}
+\item {\tt bisec} runs the bisection algorithm to return a value satisfying
+a certain equality. {\tt bisec} is called by {\tt exact$\_$pvalue}.
+\item {\tt exact$\_$pvalue} computes the exact p-value of the test statistic
+in the likelihood ratio test. {\tt exact$\_$pvalue} is called by both
+{\tt loopcuts} and {\tt loopcuts$\_$ttot}.
+\item {\tt loopcuts} is the main job file called by {\tt RPEXEv1}.
+\item {\tt loopcuts$\_$umbrella} is the main job file used by {\tt RPEXEv1}.
+\item {\tt loopcuts$\_$ttot} is the main job filed used by {\tt RPEXEv1}.
+\item {\tt pava} returns time points (along with the total time on test and
+the number of events) where the hazard is decreasing (or increasing). {\tt pava}
+is used if the option {\tt 'monotone'} is set to 1 or 2.
+\item {\tt totaltest} takes inputs (times and the indicator of event/censoring) and
+returns the total time on test and the number of event. {\tt totaltest} is used
+by {\tt loopcuts}.
+\end{enumerate}
+
+\begin{center}
+{\bf Disclaimer}
+\end{center}
+This software is given without express or implied
+warranty that the result is errorfree or reliable.
+The authors accept no responsibility or liability
+for loss or damage occasioned by its use.
+
+\begin{center}
+{\bf Reference}
+\end{center}
+\noindent
+Han, G., Schell, M. J., and Kim, J. (2009) {\em Improved survival modeling using
+a piecewise exponential approach}
+
+\end{document}
+

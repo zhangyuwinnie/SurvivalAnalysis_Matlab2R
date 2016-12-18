@@ -1,0 +1,12 @@
+%%% A driver file returning the lower bound at different sample sizes
+
+lamest = 12;
+alpha  = 0.1;
+
+
+for i = 1:50;
+    num(i) = i+10;
+    lowbd(i) = Exp_Med_lower_bound(lamest,num,alpha);
+end
+
+plot(num,lowbd);
