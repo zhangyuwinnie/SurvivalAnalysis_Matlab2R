@@ -3,7 +3,11 @@
 setwd("/Users/zy/Desktop/SurvivalAnalysis/RPEXE_YZ_version/RPEXE\ Version\ 2.0_yz/Examples")
 
 # include the R functions from the command line
-source("../R version/RcodeREPEXEv1.txt")
+#source("../R version/")
+
+# include R functions 
+pathnames <- list.files(pattern="[.]R$", path="../R version", full.names=TRUE);
+sapply(pathnames, FUN=source);
 
 # load the data 
 data_ex1 <- read.table("data.ex1.txt", header=F)
