@@ -1,6 +1,6 @@
 
 # Set your current work directory that contains this code
-setwd("D:/GH work/topics/Software/RPEXE software/Examples")
+setwd("/Users/zy/Desktop/SurvivalAnalysis/RPEXE_YZ_version/RPEXE\ Version\ 2.0_yz/Examples")
 
 # include the R functions from the command line
 source("../R version/RcodeREPEXEv1.txt")
